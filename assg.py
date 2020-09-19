@@ -213,7 +213,6 @@ Actual data: http://py4e-data.dr-chuck.net/comments_938805.html (Sum ends with 9
 The file is a table of names and comment counts.
 You can ignore most of the data in the file except for lines like the following:
 <tr><td>Modu</td><td><span class="comments">90</span></td></tr>
-
 You are to find all the <span> tags in the file and pull out the numbers from the tag and sum the numbers.
 """
 """
@@ -263,33 +262,26 @@ print(s)
 """
 python 3: Week 4(Chapter 12)>>>
 In this assignment you will write a Python program that expands on http://www.py4e.com/code3/urllinks.py.
-
-The program will 
-use urllib to read the HTML from the data files below
-, extract the href= values from the anchor tags,
-scan for a tag that is in a particular position relative to the first name in the list,
-follow that link
+The program will use urllib to read the HTML from the data files below,extract the href= values from the anchor tags,
+scan for a tag that is in a particular position relative to the first name in the list, follow that link
 and repeat the process a number of times and report the last name you find.
-
 Sample problem: Start at http://py4e-data.dr-chuck.net/known_by_Fikret.html
 Find the link at position 3 (the first name is 1).
 Follow that link. Repeat this process 4 times. The answer is the last name that you retrieve.
 Sequence of names: Fikret Montgomery Mhairade Butchi Anayah
 Last name in sequence: Anayah
-
 Actual problem: Start at: http://py4e-data.dr-chuck.net/known_by_Somaya.html
 Find the link at position 18 (the first name is 1). Follow that link.
 Repeat this process 7 times. The answer is the last name that you retrieve.
 Hint: The first character of the name of the last page that you will load is: H
-
-Strategy
+Strategy:
 The web pages tweak the height between the links and hide the page after a few seconds 
 to make it difficult for you to do the assignment without writing a Python program.
 But frankly with a little effort and patience you can overcome these attempts 
 to make it a little harder to complete the assignment without writing a Python program. But that is not the point.
 The point is to write a clever Python program to solve the program.
 """
-
+"""
 #imports
 import urllib.request, urllib.parse, urllib.error
 from bs4 import BeautifulSoup
@@ -322,8 +314,209 @@ while count > 0:
   html = urllib.request.urlopen(link, context=ctx).read()
   soup = BeautifulSoup(html, 'html.parser')
   tags = soup('a')
-
   count = count - 1
+"""
+
+
+
+
+"""
+python 3: Week 5(Chapter 13)>>>
+Extracting Data from XML
+In this assignment you will write a Python program somewhat similar to http://www.py4e.com/code3/geoxml.py. 
+The program will prompt for a URL, read the XML data from that URL using urllib and 
+then parse and extract the comment counts from the XML data, compute the sum of the numbers in the file.
+Sample data: http://py4e-data.dr-chuck.net/comments_42.xml (Sum=2553)
+Actual data: http://py4e-data.dr-chuck.net/comments_938807.xml (Sum ends with 20)
+Data Format and Approach:
+You are to look through all the <comment> tags and find the <count> values sum the numbers.
+The closest sample code that shows how to parse XML is geoxml.py.
+To make the code a little simpler, you can use an XPath selector string to look through the entire tree of XML
+for any tag named 'count' with the following line of code: counts = tree.findall('.//count')
+Take a look at the Python ElementTree documentation and look for the supported XPath syntax for details.
+You could also work from the top of the XML down to the comments node and then loop through the child nodes of the comments node.
+"""
+"""
+import urllib.request, urllib.parse, urllib.error
+import ssl                                             #Transport Layer Security
+import xml.etree.ElementTree as ET
+
+ctx = ssl.create_default_context()
+ctx.check_hostname = False
+ctx.verify_mode = ssl.CERT_NONE
+
+url = input('Enter URL: ')
+xmlText = urllib.request.urlopen(url, context=ctx).read()
+
+tree = ET.fromstring(xmlText)
+commentsList = tree.findall('comments/comment')
+countSum = 0
+
+for comment in commentsList:
+  c = int(comment.find('count').text)
+  countSum = countSum + c
+
+print('Count', countSum)
+"""
+
+
+
+
+"""
+python 3: Week 6(Chapter 13)>>>
+Extracting Data from JSON
+In this assignment you will write a Python program somewhat similar to http://www.py4e.com/code3/json2.py.
+The program will prompt for a URL, read the JSON data from that URL using urllib and then parse and extract the comment counts from the JSON data,
+compute the sum of the numbers in the file and enter the sum below:
+Sample data: http://py4e-data.dr-chuck.net/comments_42.json (Sum=2553)
+Actual data: http://py4e-data.dr-chuck.net/comments_938808.json (Sum ends with 49)
+The closest sample code that shows how to parse JSON and extract a list is json2.py.
+You might also want to look at geoxml.py to see how to prompt for a URL and retrieve data from a URL.
+"""
+"""
+import ssl
+import json
+import urllib.request, urllib.parse, urllib.error
+ctx = ssl.create_default_context()
+ctx.check_hostname = False
+ctx.verify_mode = ssl.CERT_NONE
+url = input('Enter URL: ')
+encodedData = urllib.request.urlopen(url, context = ctx)
+decodedData = encodedData.read().decode()
+parsedData = json.loads(decodedData)
+countTotal = 0
+#count = parsedData['comments'][0]['count']
+for item in parsedData['comments']:
+  #print (item['count'])
+  count = int(item['count'])
+  countTotal = countTotal + count
+print(countTotal)
+"""
+
+
+
+
+"""
+python 3: Week 6(Chapter 13)>>>
+Calling a JSON API
+In this assignment you will write a Python program somewhat similar to http://www.py4e.com/code3/geojson.py.
+The program will prompt for a location, contact a web service and retrieve JSON for the web service
+and parse that data,and retrieve the first place_id from the JSON. 
+A place ID is a textual identifier that uniquely identifies a place as within Google Maps.
+
+>>>>>>API End Points:
+To complete this assignment, you should use this API endpoint that has a static subset of the Google Data: http://py4e-data.dr-chuck.net/json?
+
+This API uses the same parameter (address) as the Google API. This API also has no rate limit so you can test as often as you like.
+If you visit the URL with no parameters, you get "No address..." response.
+
+>>>>>>To call the API:
+you need to include a key= parameter and provide the address that you are requesting as the address= parameter
+that is properly URL encoded using the urllib.parse.urlencode() function as shown in http://www.py4e.com/code3/geojson.py
+
+Make sure to check that your code is using the API endpoint is as shown above.
+You will get different results from the geojson and json endpoints so make sure you are using the same end point as this autograder is using.
+
+>>>>>>Test Data / Sample Execution:
+You can test to see if your program is working with a location of "South Federal University"
+which will have a place_id of "ChIJJ2MNmPl_bIcRt8t5x-X5ZhQ".
+
+$ python3 solution.py
+Enter location: South Federal University
+Retrieving http://...
+Retrieved 2290 characters
+Place id ChIJJ2MNmPl_bIcRt8t5x-X5ZhQ
+
+>>>>>>Turn In:
+Please run your program to find the place_id for this location: Old Dominion University
+
+>>>>>>Hint: The first seven characters of the place_id are "ChIJRTm ..."
+Make sure to retreive the data from the URL specified above and not the normal Google API.
+Your program should work with the Google API - but the place_id may not match for this assignment.
+"""
+"""
+import  ssl
+import  json
+import urllib.request, urllib.parse, urllib.error
+
+ctx = ssl.create_default_context()
+ctx.check_hostname = False
+ctx.verify_mode = ssl.CERT_NONE
+
+serviceURL = 'http://py4e-data.dr-chuck.net/json?'
+
+loc = input('Enter Location: ')
+
+url = serviceURL + urllib.parse.urlencode({'loc: loc'})
+
+encodedData = urllib.request.urlopen(url, context = ctx)
+decodedData = encodedData.read().decode()
+
+print('Retrieved', len(decodedData), 'characters')
+
+parsedData = json.loads(decodedData)
+
+if not parsedData or 'status' not in parsedData or parsedData['status'] != 'OK':
+  print('==== Failure To Retrieve ====')
+  print(decodedData)
+
+print(json.dumps(parsedData, indent=4))
+"""
+
+import urllib.request, urllib.parse, urllib.error
+import json
+import ssl
+
+ctx = ssl.create_default_context()
+ctx.check_hostname = False
+ctx.verify_mode = ssl.CERT_NONE
+
+api_key = False
+
+if api_key is False:
+    api_key = 42
+    serviceurl = 'http://py4e-data.dr-chuck.net/json?'
+else :
+    serviceurl = 'https://maps.googleapis.com/maps/api/geocode/json?'
+
+while True:
+    address = input('Enter location: ')
+    if len(address) < 1: break
+
+    parms = dict()
+    parms['address'] = address
+
+    if api_key is not False:
+      parms['key'] = api_key
+
+    url = serviceurl + urllib.parse.urlencode(parms)
+    uh = urllib.request.urlopen(url, context=ctx)
+    data = uh.read().decode()
+
+    try:
+        js = json.loads(data)
+    except:
+        js = None
+
+    if not js or 'status' not in js or js['status'] != 'OK':
+        print('==== Failure To Retrieve ====')
+        print(data)
+        continue
+
+    print(json.dumps(js, indent=4))
+
+    place_id = js['results'][0]['place_id']
+    print('place_id', place_id)
+
+
+
+
+
+
+
+
+
+
 
 
 
