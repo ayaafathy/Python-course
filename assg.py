@@ -403,33 +403,27 @@ In this assignment you will write a Python program somewhat similar to http://ww
 The program will prompt for a location, contact a web service and retrieve JSON for the web service
 and parse that data,and retrieve the first place_id from the JSON. 
 A place ID is a textual identifier that uniquely identifies a place as within Google Maps.
-
 >>>>>>API End Points:
-To complete this assignment, you should use this API endpoint that has a static subset of the Google Data: http://py4e-data.dr-chuck.net/json?
-
+To complete this assignment, you should use this API endpoint that 
+has a static subset of the Google Data: http://py4e-data.dr-chuck.net/json?
 This API uses the same parameter (address) as the Google API. This API also has no rate limit so you can test as often as you like.
 If you visit the URL with no parameters, you get "No address..." response.
-
 >>>>>>To call the API:
 you need to include a key= parameter and provide the address that you are requesting as the address= parameter
 that is properly URL encoded using the urllib.parse.urlencode() function as shown in http://www.py4e.com/code3/geojson.py
-
 Make sure to check that your code is using the API endpoint is as shown above.
-You will get different results from the geojson and json endpoints so make sure you are using the same end point as this autograder is using.
-
+You will get different results from the geojson and json endpoints 
+so make sure you are using the same end point as this autograder is using.
 >>>>>>Test Data / Sample Execution:
 You can test to see if your program is working with a location of "South Federal University"
 which will have a place_id of "ChIJJ2MNmPl_bIcRt8t5x-X5ZhQ".
-
 $ python3 solution.py
 Enter location: South Federal University
 Retrieving http://...
 Retrieved 2290 characters
 Place id ChIJJ2MNmPl_bIcRt8t5x-X5ZhQ
-
 >>>>>>Turn In:
 Please run your program to find the place_id for this location: Old Dominion University
-
 >>>>>>Hint: The first seven characters of the place_id are "ChIJRTm ..."
 Make sure to retreive the data from the URL specified above and not the normal Google API.
 Your program should work with the Google API - but the place_id may not match for this assignment.
@@ -438,35 +432,26 @@ Your program should work with the Google API - but the place_id may not match fo
 import  ssl
 import  json
 import urllib.request, urllib.parse, urllib.error
-
 ctx = ssl.create_default_context()
 ctx.check_hostname = False
 ctx.verify_mode = ssl.CERT_NONE
-
 serviceURL = 'http://py4e-data.dr-chuck.net/json?'
-
 loc = input('Enter Location: ')
-
 url = serviceURL + urllib.parse.urlencode({'loc: loc'})
-
 encodedData = urllib.request.urlopen(url, context = ctx)
 decodedData = encodedData.read().decode()
-
 print('Retrieved', len(decodedData), 'characters')
-
 parsedData = json.loads(decodedData)
-
 if not parsedData or 'status' not in parsedData or parsedData['status'] != 'OK':
   print('==== Failure To Retrieve ====')
   print(decodedData)
-
 print(json.dumps(parsedData, indent=4))
 """
 
+"""
 import urllib.request, urllib.parse, urllib.error
 import json
 import ssl
-
 ctx = ssl.create_default_context()
 ctx.check_hostname = False
 ctx.verify_mode = ssl.CERT_NONE
@@ -507,24 +492,228 @@ while True:
 
     place_id = js['results'][0]['place_id']
     print('place_id', place_id)
+"""
 
 
 
 
 
+"""
+python 4: Week 2>>>
+This application will read the mailbox data (mbox.txt) and count the number of email messages per organization
+(i.e. domain name of the email address) using a database with the following schema to maintain the counts.
+"""
+"""
+import sqlite3
+conn = sqlite3.connect('emaildb.sqlite')
+cur = conn.cursor()
+cur.execute('DROP TABLE IF EXISTS Counts')
+cur.execute('CREATE TABLE Counts (org TEXT, count INTEGER)')
+
+fname = input('Enter file name: ')
+fhandler = open(fname)
+for line in fhandler:
+  if not line.startswith('From:'):
+    continue
+  l = line.split()
+  email = l[1]
+  e = email.split('@')
+  org = e[1]
+
+  cur.execute('SELECT count FROM Counts WHERE org = ? ', (org,))
+  row = cur.fetchone()
+  if row is None:
+    cur.execute('''INSERT INTO Counts (org, count)
+                  VALUES (?, 1)''', (org,))
+  else:
+    cur.execute('UPDATE Counts SET count = count + 1 WHERE org = ?', (org,))
+  conn.commit()
+
+sqlstr = 'SELECT * FROM Counts ORDER BY count'
+for row in cur.execute(sqlstr):
+    print(str(row[0]), row[1])
+cur.close()
+"""
 
 
 
 
 
+"""
+python 4: Week 3(Chapter 15)>>>
+In this assignment you will parse an XML list of albums, artists, and Genres 
+and produce a properly normalized database using a Python program.
+"""
+""" 
+import xml.etree.ElementTree as ET
+import sqlite3
+
+conn = sqlite3.connect('trackdb.sqlite')
+cur = conn.cursor()
+
+cur.executescript('''
+DROP TABLE IF EXISTS Artist;
+DROP TABLE IF EXISTS Album;
+DROP TABLE IF EXISTS Track;
+DROP TABLE IF EXISTS Genre;
+
+CREATE TABLE Artist (
+    id  INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
+    name    TEXT UNIQUE
+);
+CREATE TABLE Genre (
+    id  INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
+    name    TEXT UNIQUE
+);
+CREATE TABLE Album (
+    id  INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
+    artist_id  INTEGER,
+    title   TEXT UNIQUE
+);
+CREATE TABLE Track (
+    id  INTEGER NOT NULL PRIMARY KEY 
+        AUTOINCREMENT UNIQUE,
+    title TEXT  UNIQUE,
+    album_id  INTEGER,
+    genre_id  INTEGER,
+    len INTEGER, rating INTEGER, count INTEGER
+);
+''')
+
+fname = input('Enter file name: ')
+if ( len(fname) < 1 ) : fname = 'Library.xml'
+
+def lookup(d, key):
+    found = False
+    for child in d:
+        if found : return child.text
+        if child.tag == 'key' and child.text == key :
+            found = True
+    return None
+
+stuff = ET.parse(fname)
+all = stuff.findall('dict/dict/dict')
+print('Dict count:', len(all))
+
+for entry in all:
+    if ( lookup(entry, 'Track ID') is None ) :
+     continue
+
+    name = lookup(entry, 'Name')
+    artist = lookup(entry, 'Artist')
+    album = lookup(entry, 'Album')
+    genre = lookup(entry, 'Genre')
+    count = lookup(entry, 'Play Count')
+    rating = lookup(entry, 'Rating')
+    length = lookup(entry, 'Total Time')
+
+    if name is None or artist is None or genre is None or album is None :
+        continue
+
+    print(name, artist, album, genre, count, rating, length)
+
+    cur.execute('''INSERT OR IGNORE INTO Artist (name) 
+        VALUES ( ? )''', ( artist, ) )
+    cur.execute('SELECT id FROM Artist WHERE name = ? ', (artist, ))
+    artist_id = cur.fetchone()[0]
+
+    cur.execute('''INSERT OR IGNORE INTO Genre (name)
+        VALUES (?)''', ( genre,) )
+    cur.execute('SELECT id FROM Genre WHERE name = ?', (genre, ))
+    genre_id = cur.fetchone()[0]
+
+    cur.execute('''INSERT OR IGNORE INTO Album (title, artist_id) 
+        VALUES ( ?, ? )''', ( album, artist_id ) )
+    cur.execute('SELECT id FROM Album WHERE title = ? ', (album, ))
+    album_id = cur.fetchone()[0]
+
+    cur.execute('''INSERT OR REPLACE INTO Track
+        (title, album_id, genre_id, len, rating, count) 
+        VALUES ( ?, ?, ?, ?, ?, ? )''',
+        ( name, album_id, genre_id, length, rating, count ) )
+
+    conn.commit()
+"""
 
 
 
 
 
+"""  
+python 4: Week 4(Chapter 15)>>>
+This assignment will be a Python program to build a set of tables using the Many-to-Many approach to store enrollment and role data.
+This application will read roster data in JSON format, parse the file, 
+and then produce an SQLite database that contains a User, Course, and Member table and populate the tables from the data file.
+You can base your solution on this code: http://www.py4e.com/code3/roster/roster.py
+this code is incomplete as you need to modify the program to store the role column in the Member table to complete the assignment.
+Once you have made the necessary changes to the program and it has been 
+run successfully reading the above JSON data, run the following SQL command:
+SELECT hex(User.name || Course.title || Member.role ) AS X FROM 
+    User JOIN Member JOIN Course 
+    ON User.id = Member.user_id AND Member.course_id = Course.id
+    ORDER BY X
+Find the first row in the resulting record set and enter the long string that looks like 53656C696E613333.
+"""
+"""
+import json
+import sqlite3
 
+conn = sqlite3.connect('rosterdb.sqlite')
+cur = conn.cursor()
 
+cur.executescript('''
+DROP TABLE IF EXISTS User;
+DROP TABLE IF EXISTS Member;
+DROP TABLE IF EXISTS Course;
 
+CREATE TABLE User (
+    id     INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
+    name   TEXT UNIQUE
+);
+
+CREATE TABLE Course (
+    id     INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
+    title  TEXT UNIQUE
+);
+
+CREATE TABLE Member (
+    user_id     INTEGER,
+    course_id   INTEGER,
+    role        INTEGER,
+    PRIMARY KEY (user_id, course_id)
+)
+''')
+
+fname = input('Enter file name: ')
+if len(fname) < 1:
+    fname = 'roster_data.json'
+
+str_data = open(fname).read()
+json_data = json.loads(str_data)
+
+for entry in json_data:
+
+    name = entry[0];
+    title = entry[1];
+    role = entry[2];
+    print((name, title, role))
+
+    cur.execute('''INSERT OR IGNORE INTO User (name)
+        VALUES ( ? )''', ( name, ) )
+    cur.execute('SELECT id FROM User WHERE name = ? ', (name, ))
+    user_id = cur.fetchone()[0]
+
+    cur.execute('''INSERT OR IGNORE INTO Course (title)
+        VALUES ( ? )''', ( title, ) )
+    cur.execute('SELECT id FROM Course WHERE title = ? ', (title, ))
+    course_id = cur.fetchone()[0]
+
+    cur.execute('''INSERT OR REPLACE INTO Member
+        (user_id, course_id, role) VALUES ( ?, ?, ? )''',
+        ( user_id, course_id, role ) )
+
+    conn.commit()
+"""
 
 
 
